@@ -113,4 +113,110 @@ export class OrdersService {
 
         return updatedOrder;
     }
+
+    async getDailySalesReport(): Promise<any> {
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const endOfDay = new Date();
+        endOfDay.setHours(23, 59, 59, 999);
+
+        const [report] = await this.orderModel.aggregate([
+            //     {
+            //         $match: {
+            //             createdAt: { $gte: startOfDay, $lte: endOfDay },
+            //         },
+            //     },
+            {
+                '$group': {
+                    '_id': null,
+                    'totalOrders': {
+                        '$sum': 1
+                    },
+                    'orders': {
+                        '$push': '$$ROOT'
+                    }
+                }
+            },
+            {
+                '$unwind': {
+                    'path': '$orders'
+                }
+            },
+            {
+                '$unwind': {
+                    'path': '$orders.items'
+                }
+            },
+            {
+                '$lookup': {
+                    'from': 'items',
+                    'localField': 'orders.items.item',
+                    'foreignField': '_id',
+                    'as': 'itemDetails'
+                }
+            },
+            {
+                '$unwind': {
+                    'path': '$itemDetails'
+                }
+            },
+            {
+                '$group': {
+                    '_id': '$orders.items.item',
+                    'name': {
+                        '$first': '$itemDetails.name'
+                    },
+                    'quantitySold': {
+                        '$sum': '$orders.items.quantity'
+                    },
+                    'totalSales': {
+                        '$sum': {
+                            '$multiply': [
+                                '$orders.items.quantity', '$itemDetails.price'
+                            ]
+                        }
+                    },
+                    'totalOrders': {
+                        '$first': '$totalOrders'
+                    }
+                }
+            },
+            {
+                '$sort': {
+                    'totalSales': -1
+                }
+            },
+            {
+                '$group': {
+                    '_id': null,
+                    'totalRevenue': {
+                        '$sum': '$totalSales'
+                    },
+                    'totalOrders': {
+                        '$first': '$totalOrders'
+                    },
+                    'topSellingItems': {
+                        '$push': {
+                            'itemId': '$_id',
+                            'name': '$name',
+                            'quantitySold': '$quantitySold',
+                            'totalSales': '$totalSales'
+                        }
+                    }
+                }
+            },
+            {
+                '$project': {
+                    '_id': 0,
+                    'totalRevenue': 1,
+                    'totalOrders': 1,
+                    'topSellingItems': 1
+                }
+            }
+        ]);
+
+        return report
+    }
+
 }

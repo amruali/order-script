@@ -18,6 +18,11 @@ export class OrdersController {
         return this.ordersService.findAll();
     }
 
+    @Get('daily-report')
+    async getDailySalesReport() {
+        return this.ordersService.getDailySalesReport();
+    }
+
     @Get(':id')
     async findOne(@Param('id') id: string): Promise<Order> {
         return this.ordersService.findOne(id);
