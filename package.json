@@ -1,8 +1,8 @@
 {
-  "name": "",
+  "name": "orders-script",
   "version": "0.0.1",
-  "description": "",
-  "author": "",
+  "description": "Just an Ordering Service written in typescript",
+  "author": "dev.amruali@gmail.com",
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
