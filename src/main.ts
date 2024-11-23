@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core/nest-factory';
 import { AppModule } from './app.module';
 import { ValidationExceptionFilter } from './orders/filters/validation-exception.filter';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
 
@@ -19,6 +20,9 @@ async function bootstrap() {
 
     app.useGlobalFilters(new ValidationExceptionFilter());
 
-    await app.listen(3000);
+    const configService = app.get(ConfigService);
+    const port = configService.get<number>('PORT', 8080); // Default to 3000 if PORT is not set
+
+    await app.listen(port);
 }
 bootstrap();
