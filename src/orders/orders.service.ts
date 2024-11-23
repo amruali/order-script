@@ -1,16 +1,19 @@
-import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Order } from './schemas/orders.schema';
 import { CreateOrderDto } from '../dtos/create-order.dto';
 import { Item } from '../items/schemas/item.schema';
 import { UpdateOrderDto } from '../dtos/update-order.dto';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 
 @Injectable()
 export class OrdersService {
     constructor(
         @InjectModel(Order.name) private orderModel: Model<Order>,
         @InjectModel(Item.name) private readonly itemModel: Model<Item>,
+        @Inject(CACHE_MANAGER) private cacheManager: Cache,
     ) { }
 
 
@@ -138,6 +141,24 @@ export class OrdersService {
 
     async getDailySalesReport(startOfDay: Date, endOfDay: Date): Promise<any> {
 
+
+        const today_ = new Date(new Date() + 'UTC').toISOString().slice(0, 10);
+
+        const requiredDay_ = startOfDay.toISOString().slice(0, 10);
+
+        const cache_key = `sales:report_${startOfDay.toISOString().slice(0, 10)}`
+
+        if (today_ !== requiredDay_) {
+
+            const cashedReport = await this.cacheManager.get(cache_key);
+
+            if (cashedReport) {
+                console.log("Found in Cache");
+                return cashedReport;
+            }
+
+        }
+
         const [report] = await this.orderModel.aggregate([
             {
                 $match: {
@@ -235,6 +256,8 @@ export class OrdersService {
                 }
             }
         ]);
+
+        await this.cacheManager.set(cache_key, report);
 
         return report
     }
