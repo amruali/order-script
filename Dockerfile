@@ -1,5 +1,5 @@
 # Stage 1: Build the application
-FROM node:22-slim AS builder
+FROM node:22.8-slim AS builder
 
 # Set working directory inside the container
 WORKDIR /app
@@ -20,7 +20,7 @@ RUN npm run build
 RUN npm prune --production
 
 # Stage 2: Create a minimal image for production
-FROM node:22-slim
+FROM node:22.8.0-slim
 
 # Set working directory
 WORKDIR /app
