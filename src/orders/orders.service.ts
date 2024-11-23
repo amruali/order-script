@@ -136,19 +136,14 @@ export class OrdersService {
         return updatedOrder;
     }
 
-    async getDailySalesReport(): Promise<any> {
-        const startOfDay = new Date();
-        startOfDay.setHours(0, 0, 0, 0);
-
-        const endOfDay = new Date();
-        endOfDay.setHours(23, 59, 59, 999);
+    async getDailySalesReport(startOfDay: Date, endOfDay: Date): Promise<any> {
 
         const [report] = await this.orderModel.aggregate([
-            //     {
-            //         $match: {
-            //             createdAt: { $gte: startOfDay, $lte: endOfDay },
-            //         },
-            //     },
+            {
+                $match: {
+                    createdAt: { $gte: startOfDay, $lte: endOfDay },
+                },
+            },
             {
                 '$group': {
                     '_id': null,
