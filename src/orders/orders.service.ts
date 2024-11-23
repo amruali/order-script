@@ -184,8 +184,11 @@ export class OrdersService {
             },
             {
                 '$sort': {
-                    'totalSales': -1
+                    'totalSales': -1   // sort is on totalSales of item which is price * quantity of sold ones not quantity of sold items alone
                 }
+            },
+            {
+                '$limit': 10   // can be configurable next; now set to limit to 
             },
             {
                 '$group': {
