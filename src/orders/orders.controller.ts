@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, BadRequestException } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from '../dtos/create-order.dto';
 import { Order } from './schemas/orders.schema';
@@ -10,7 +10,15 @@ export class OrdersController {
 
     @Post()
     async createOrder(@Body() createOrderDto: CreateOrderDto) {
-        return this.ordersService.createOrder(createOrderDto);
+        try {
+            return this.ordersService.createOrder(createOrderDto);
+        } catch (exception) {
+            const message =
+                exception instanceof Error
+                    ? exception.message : 'Order creation failed.';
+
+            throw new BadRequestException(message);
+        }
     }
 
     @Get()
