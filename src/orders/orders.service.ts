@@ -1,4 +1,4 @@
-import { /* BadRequestException, */ Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Order } from './schemas/orders.schema';
@@ -16,32 +16,47 @@ export class OrdersService {
 
     async createOrder(createOrderDto: CreateOrderDto): Promise<Order> {
         // Populate the order with item details
+        const { customerName, items: payloadItems } = createOrderDto;
+
+        // Validate item IDs
+        const payloadItemsIDs = payloadItems.map((item) => item.itemId);
+
+        const existingItems = await this.itemModel.find({ _id: { $in: payloadItemsIDs } }).exec();
+
+        if (existingItems.length !== payloadItems.length) {
+            const missing_items = payloadItemsIDs.filter(itemID => !existingItems.map(item => item._id.toString()).includes(itemID));
+            throw new BadRequestException(`Some items in the order do not exist. [${missing_items.join(",")}]`);
+        }
+
         const orderItems = await Promise.all(
-            createOrderDto.items.map(async ({ itemId, quantity }) => {
-
-                const item = await this.itemModel.findById(itemId).exec();
-
+            payloadItems.map(async ({ itemId, quantity }) => {
+                const existingItem = existingItems.find(item => item._id.toString() === itemId);
                 return {
                     item: new Types.ObjectId(itemId),
                     quantity,
-                    price: item.price
+                    price: existingItem.price,
                 };
-            }),
+            })
         );
 
-        const totalAmount = orderItems.reduce((total, orderItem) => {
-            const item = orderItems.find((oi) => oi.item.toString() === orderItem.item.toString());
-            return total + (item?.quantity || 0) * (item?.price || 0);
+        const totalAmount = orderItems.reduce((total, { price, quantity }) => {
+            return total + price * quantity;
         }, 0);
 
-        const createdOrder = new this.orderModel({
-            customerName: createOrderDto.customerName,
-            items: orderItems,
-            totalAmount,
-        });
+        try {
 
+            const createdOrder = new this.orderModel({
+                customerName,
+                items: orderItems,
+                totalAmount,
+            });
+    
+            return createdOrder.save();
 
-        return createdOrder.save();
+        } catch (error) {
+            console.log(error)
+            throw new InternalServerErrorException('Failed to create the order.');
+        }
     }
 
 
@@ -69,8 +84,8 @@ export class OrdersService {
     // Update an order by ID
     async updateOrder(id: string, updateOrderDto: UpdateOrderDto): Promise<Order> {
 
-         // Populate the order with item details
-         const orderItems = await Promise.all(
+        // Populate the order with item details
+        const orderItems = await Promise.all(
 
             updateOrderDto.items.map(async ({ itemId, quantity }) => {
 
