@@ -3,22 +3,22 @@ import { IsString, Min, IsMongoId, IsNotEmpty, IsNumber, IsArray, ValidateNested
 
 
 class OrderItemDto {
-    @IsMongoId() // Ensures valid MongoDB ObjectId
-    @IsNotEmpty()
+    @IsMongoId({ message: 'Invalid item ID format.' }) // Validates MongoDB ObjectId
+    @IsNotEmpty({ message: 'Item ID is required.' })
     itemId: string;
 
-    @IsNumber()
-    @Min(1) // Ensure quantity is at least 1
+    @IsNumber({}, { message: 'Quantity must be a number.' })
+    @Min(1, { message: 'Quantity must be at least 1.' })
     quantity: number;
 }
 
 export class CreateOrderDto {
-    @IsString()
-    @IsNotEmpty() // Ensures the customerName is not empty
+    @IsString({ message: 'Customer name must be a string.' })
+    @IsNotEmpty({ message: 'Customer name is required.' })
     customerName: string;
 
-    @IsArray() // Ensures the items field is an array
-    @ValidateNested({ each: true }) // Validate each item in the array
+    @IsArray({ message: 'Items must be an array.' })
+    @ValidateNested({ each: true, message: 'Invalid item structure.' }) // Validate each item in the array
     @Type(() => OrderItemDto) // Transform each array element into an OrderItemDto instance
     items: OrderItemDto[];
 }
